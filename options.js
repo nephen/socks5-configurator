@@ -21,6 +21,10 @@ chrome.storage.local.get('socks5server', s => {
     s = s.socks5server || '';
     document.querySelector('#socks5server').value = s;
 });
+chrome.storage.local.get('socks5token', s => {
+    s = s.socks5token || '';
+    document.querySelector('#socks5token').value = s;
+});
 chrome.storage.local.get('bypassswitch', s =>{
     s = s.bypassswitch || 'on';
     if(s == "on"){
@@ -47,12 +51,45 @@ chrome.storage.local.get('bypassdomaintxt', s =>{
     document.querySelector('#bypassdomaintxt').value = s;
 });
 
+function initRemoteIp() {
+    setTimeout(()=>{
+        // 1. 创建XMLHttpRequest对象
+        var xhr = new XMLHttpRequest();
+
+        // 2. 配置请求
+        xhr.open('GET', "http://"+document.querySelector('#socks5server').value);
+
+        // 3. 设置请求头
+        xhr.setRequestHeader('Add_remote_ip', document.querySelector('#socks5token').value);
+
+        // 4. 监听请求完成事件
+        xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+            // 5. 请求成功处理
+            var response = xhr.responseText;
+            console.log('服务器返回的数据：', response);
+            } else {
+            // 6. 请求失败处理
+            console.error('请求失败：', xhr.status, xhr.statusText);
+            }
+        }
+        };
+
+        // 7. 发送请求
+        xhr.send();
+    }, 3000);
+}
+
+initRemoteIp();
+
 document.querySelector('#save').addEventListener("click", async (e) => {
     document.querySelector('#save').style.display = 'none';
     document.querySelector('#ing').style.display = 'block';
 
     var socks5switch = document.querySelector('#socks5switch').checked;
     var socks5server = document.querySelector('#socks5server').value;
+    var socks5token = document.querySelector('#socks5token').value;
     var bypassswitch = document.querySelector('#bypassswitch').checked;
     var bypassdomainurl = document.querySelector('#bypassdomainurl').value;
     var bypasscidr4url = document.querySelector('#bypasscidr4url').value;
@@ -69,6 +106,7 @@ document.querySelector('#save').addEventListener("click", async (e) => {
     }
     chrome.storage.local.set({"socks5switch": socks5switch ? 'on' : 'off'});
     chrome.storage.local.set({"socks5server": socks5server});
+    chrome.storage.local.set({"socks5token": socks5token});
     var l = [
 		"10.0.0.0/8",
 		"127.0.0.0/8",
@@ -147,6 +185,7 @@ document.querySelector('#save').addEventListener("click", async (e) => {
 
     var host = socks5server.substring(0, socks5server.lastIndexOf(':')).replace('[', '').replace(']', '');
     var port = socks5server.substring(socks5server.lastIndexOf(':')+1);
+    l.push(host);
     chrome.proxy.settings.set({
         value: {
             mode: "fixed_servers",
@@ -163,6 +202,7 @@ document.querySelector('#save').addEventListener("click", async (e) => {
         setTimeout(()=>{
             document.querySelector('#save').style.display = 'block';
             document.querySelector('#ing').style.display = 'none';
+            initRemoteIp();
         }, 1000);
     });
 });
